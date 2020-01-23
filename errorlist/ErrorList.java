@@ -961,20 +961,35 @@ public class ErrorList extends JPanel implements DefaultFocusComponent
 	
 	//{{{ _openFile() method
 	private void _openFile(String vfsPath) {
+		VFS vfs = VFSManager.getVFSForPath(vfsPath);
+		Object session = vfs.createVFSSession(vfsPath, null);
+		
 		try {
-			VFS vfs = VFSManager.getVFSForPath(vfsPath);
-			VFSFile file = vfs._getFile(null, vfsPath, null);
+			VFSFile file = null;
+			if (session != null) {
+				file = vfs._getFile(session, vfsPath, null);
+			}
+			
 			if (file == null || file.getLength() == 0) {
 				FileOpenerService.open(MiscUtilities.getFileName(vfsPath), view);
-			}
-			else {
+			} else {
 				jEdit.openFile(view,vfsPath);
 			}
 		}
 		catch (IOException ioe) {
 			Log.log(Log.ERROR, this, ioe);
+		} finally {
+			if (session != null) {
+				try {
+					vfs._endVFSSession(session, null);
+				} catch (Exception e){
+					Log.log(Log.ERROR, this, e);
+				}
+			}
 		}
-	}//}}}
+	}
+	
+	//}}}
 	
 	//{{{ openError() method
 	private void openError(final ErrorSource.Error error)
